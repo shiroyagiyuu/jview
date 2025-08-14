@@ -138,7 +138,8 @@ public class JViewLoader extends Thread
 	}
 
 	private void findAllImageFile(List<ImageList> dstList, File dir, List<File> queue) {
-		File[]  full_filelist;
+		File[]    full_filelist;
+		String[]  exts = ImageIO.getReaderFileSuffixes();
 
 		System.out.println("search dir="+dir.getName());
 		full_filelist = dir.listFiles();
@@ -150,11 +151,13 @@ public class JViewLoader extends Thread
 			if (file.isDirectory()) {
 				queue.add(file);
 			} else {
-				String  fname = full_filelist[i].getName();
+				String  fname = full_filelist[i].getName().toLowerCase();
 
-				if (fname.endsWith(".jpg") ||
-					fname.endsWith(".png")) {
-					dstList.add(new ImageList(full_filelist[i]));
+				for (String ext : exts) {
+					if (fname.endsWith(ext)) {
+						dstList.add(new ImageList(full_filelist[i]));
+						break;
+					}
 				}
 			}
 		}
