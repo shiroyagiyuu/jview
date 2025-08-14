@@ -3,6 +3,7 @@ package pureplus.jview;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Arrays;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -43,7 +44,8 @@ public class JViewLoader extends Thread
 {
 	int          index,load_idx;
 	File         	arg_path;
-	List<ImageList>	img_list;
+	List<ImageList>	  img_list;
+	LinkedList<File>  load_dir_que;
 
 	ArrayList<JViewLoadEventListener>  jdisplistener;
 
@@ -51,7 +53,7 @@ public class JViewLoader extends Thread
 	private boolean running;
 
 	public JViewLoader(String path) {
-		this.index = 0;
+		this.index = this.load_idx = 0;
 		this.arg_path = new File(path);
 		this.img_list = null;
 
@@ -111,7 +113,10 @@ public class JViewLoader extends Thread
 		
 			if (img_list.size()>1) {
 				loadImage(nextIndex(load_idx));
-				loadImage(prevIndex(load_idx));
+				if (load_dir_que.isEmpty()) {
+					/* supress load before searching dirs */
+					loadImage(prevIndex(load_idx));
+				}
 			}
 		}
 	}
@@ -119,6 +124,7 @@ public class JViewLoader extends Thread
 	public void loadImage(int idx) {
 		ImageList	ref = img_list.get(idx);
 		try {
+			//System.out.println("loadstart idx="+idx);
 			Image		img = ref.getImage();
 
 			if (idx==this.index) {
@@ -131,10 +137,10 @@ public class JViewLoader extends Thread
 		}
 	}
 
-	private List<File> getAllImageFile(File dir) {
+	private void findAllImageFile(List<ImageList> dstList, File dir, List<File> queue) {
 		File[]  full_filelist;
-		ArrayList<File>   img_filelist = new ArrayList<File>();
 
+		System.out.println("search dir="+dir.getName());
 		full_filelist = dir.listFiles();
 		Arrays.sort(full_filelist);
 
@@ -142,32 +148,36 @@ public class JViewLoader extends Thread
 			File  file;
 			file = full_filelist[i];
 			if (file.isDirectory()) {
-				List<File>  ch_list = getAllImageFile(file);
-				img_filelist.addAll(ch_list);
+				queue.add(file);
 			} else {
 				String  fname = full_filelist[i].getName();
 
 				if (fname.endsWith(".jpg") ||
 					fname.endsWith(".png")) {
-					img_filelist.add(full_filelist[i]);
+					dstList.add(new ImageList(full_filelist[i]));
 				}
 			}
 		}
-		return  img_filelist;
+	}
+
+	private boolean findImageAsync() {
+		File  dir = load_dir_que.poll();
+		if (dir!=null) {
+			findAllImageFile(img_list, dir, load_dir_que);
+			return true;
+		}
+		return false;
 	}
 
 	@Override
 	public void run() {
 		System.out.println("run with path="+arg_path);
-		if (arg_path.isDirectory()) {
-			List<File>  file_list = getAllImageFile(arg_path);
+		img_list = new ArrayList<ImageList>();
+		load_dir_que = new LinkedList<File>();
 
-			img_list = new ArrayList<ImageList>(file_list.size());
-			for (int i=0; i<file_list.size(); i++) {
-				img_list.add(new ImageList(file_list.get(i)));
-			}
+		if (arg_path.isDirectory()) {
+			findAllImageFile(img_list, arg_path, load_dir_que);
 		} else if (arg_path.isFile()) {
-			img_list = new ArrayList<ImageList>(1);
 			img_list.add(new ImageList(arg_path));
 		}
 		updateCurrent();
@@ -176,8 +186,10 @@ public class JViewLoader extends Thread
 			this.running = true;
 			while(this.running) {
 				loadCurrent();
-				synchronized(syncmon) {
-					syncmon.wait();
+				if (!findImageAsync()) {
+					synchronized(syncmon) {
+						syncmon.wait();
+					}
 				}
 			}
 		} catch(InterruptedException ex) {
