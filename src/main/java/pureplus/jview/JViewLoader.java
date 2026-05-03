@@ -129,7 +129,7 @@ public class JViewLoader extends Thread
 
 			if (idx==this.index) {
 				//System.out.println("fire"+index+"/"+img_list.size());
-				fireJViewLoadEvent(img);
+				fireJViewLoadEvent(img, ref.getFile().getName());
 			}
 		} catch(IOException ex) {
 			System.out.println("load error:" + ref.getFile().getPath());
@@ -216,9 +216,9 @@ public class JViewLoader extends Thread
 		jdisplistener.remove(l);
 	}
 
-	public void fireJViewLoadEvent(Image img) {
+	public void fireJViewLoadEvent(Image img, String name) {
 		for (int i=0; i<jdisplistener.size(); i++) {
-			jdisplistener.get(i).imageLoaded(img);
+			jdisplistener.get(i).imageLoaded(img, name);
 		}
 	}
 }

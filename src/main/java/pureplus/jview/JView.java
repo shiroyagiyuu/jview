@@ -118,9 +118,10 @@ public class JView
 		}
 
 		ldr = new JViewLoader(path);
-		ldr.addJViewLoadListener(img -> {
+		ldr.addJViewLoadListener((img, name) -> {
 			cont.setImage(img);
 			cont.repaint();
+			frame.setTitle(name);
 		});
 		ldr.start();
 	}
