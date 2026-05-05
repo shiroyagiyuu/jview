@@ -1,3 +1,4 @@
+package pureplus.jview;
 import java.io.*;
 
 public class ImageFileFilter implements FilenameFilter

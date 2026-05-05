@@ -3,7 +3,6 @@ package pureplus.jview;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import javax.imageio.*;
 
 class JViewView extends JComponent
 {
