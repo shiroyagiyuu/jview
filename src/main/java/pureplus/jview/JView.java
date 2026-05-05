@@ -13,7 +13,7 @@ class JViewView extends JComponent
 
 		//g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		Rectangle  bounds = g2d.getClipBounds();
+		Rectangle  bounds = this.getBounds();
 
 		g2d.setColor(Color.lightGray);
 		g2d.fillRect(0, 0, bounds.width, bounds.height);
@@ -58,6 +58,9 @@ public class JView
 	JViewView    cont;
 	JViewLoader  ldr;
 
+	JFrame        imgListFrame;
+	JList<String> imgList;
+
 	public JView() {
 		frame = new JFrame("JView");
 		cont = new JViewView();
@@ -66,7 +69,12 @@ public class JView
 		frame.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosed(WindowEvent ev) {
-				ldr.shutdown();
+				if (imgListFrame!=null) {
+					imgListFrame.dispose();
+				}
+				if (ldr!=null) {
+					ldr.shutdown();
+				}
 				//System.exit(0);
 			}
 		});
@@ -108,6 +116,17 @@ public class JView
 
 		frame.setSize(1200,1024);
 
+		/* SetMenu */
+		JMenuBar    menuBar = new JMenuBar();
+		JMenu       menu = new JMenu("JView");
+		JMenuItem   openList = new JMenuItem("Open Image List");
+		openList.addActionListener(ev -> {
+			openImageList();
+		});
+		menu.add(openList);
+		menuBar.add(menu);
+		frame.setJMenuBar(menuBar);
+
 		ldr = null;
 	}
 
@@ -121,6 +140,9 @@ public class JView
 			cont.setImage(img);
 			cont.repaint();
 			frame.setTitle(name);
+			if (imgList!=null) {
+				imgList.setSelectedValue(name, true);
+			}
 		});
 		ldr.start();
 	}
@@ -131,6 +153,24 @@ public class JView
 
 	public boolean isVisible() {
 		return frame.isVisible();
+	}
+
+	public void openImageList() {
+		if (imgListFrame==null) {
+			imgListFrame = new JFrame("Image List");
+			imgListFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+			imgListFrame.setSize(200,400);
+			imgList = new JList<String>(ldr.getListModel());
+			imgList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			imgList.addListSelectionListener(ev -> {
+				if (!ev.getValueIsAdjusting()) {
+					ldr.setIndex(imgList.getSelectedIndex());
+					ldr.updateCurrent();
+				}
+			});
+			imgListFrame.add(new JScrollPane(imgList));
+		}
+		imgListFrame.setVisible(true);
 	}
 
 	public static void main(String[] args) {

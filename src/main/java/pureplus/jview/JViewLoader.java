@@ -96,6 +96,20 @@ public class JViewLoader extends Thread
 		}
 	}
 
+	public javax.swing.AbstractListModel<String> getListModel() {
+		return new javax.swing.AbstractListModel<String>() {
+			@Override
+			public int getSize() {
+				return img_list.size();
+			}
+
+			@Override
+			public String getElementAt(int index) {
+				return img_list.get(index).getFile().getName();
+			}
+		};
+	}
+
 	void updateCurrent() {
 		synchronized(syncmon) {
 			this.load_idx = this.index;
@@ -206,7 +220,6 @@ public class JViewLoader extends Thread
 			syncmon.notify();
 		}
 	}
-
 
 	public void addJViewLoadListener(JViewLoadEventListener l) {
 		jdisplistener.add(l);
