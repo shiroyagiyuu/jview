@@ -49,6 +49,8 @@ public class JViewLoader extends Thread
 
 	ArrayList<JViewLoadEventListener>  jdisplistener;
 
+	Thread search_thread;
+
 	private Object  syncmon = new Object();
 	private boolean running;
 
@@ -121,6 +123,7 @@ public class JViewLoader extends Thread
 		synchronized(syncmon) {
 			if (this.load_idx<0) {
 				this.load_idx = 0;
+				this.index = 0;
 			}
 			syncmon.notify();
 		}
@@ -136,7 +139,7 @@ public class JViewLoader extends Thread
 		
 			if (img_list.size()>1) {
 				loadImage(nextIndex(load_idx));
-				if (load_dir_que.isEmpty()) {
+				if (search_thread==null) {
 					/* supress load before searching dirs */
 					loadImage(prevIndex(load_idx));
 				}
@@ -203,6 +206,8 @@ public class JViewLoader extends Thread
 			while(findImageAsync() && running) {
 				//System.out.println("findImageAsync");
 			}
+
+			search_thread = null;
 		}
 	}
 
@@ -220,7 +225,7 @@ public class JViewLoader extends Thread
 		System.out.println("run with path="+arg_path);
 		img_list = new ArrayList<ImageList>();
 
-		Thread search_thread = new DirectorySearchThread();
+		search_thread = new DirectorySearchThread();
 		search_thread.start();
 
 		try {
