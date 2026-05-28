@@ -53,7 +53,7 @@ public class JViewLoader extends Thread
 	private boolean running;
 
 	public JViewLoader(String path) {
-		this.index = this.load_idx = 0;
+		this.index = this.load_idx = -1;
 		this.arg_path = new File(path);
 		this.img_list = null;
 
@@ -117,6 +117,15 @@ public class JViewLoader extends Thread
 		}
 	}
 
+	void updateDirectory() {
+		synchronized(syncmon) {
+			if (this.load_idx<0) {
+				this.load_idx = 0;
+			}
+			syncmon.notify();
+		}
+	}
+
 	/**
 	 * load current image and display
 	 * and load next / previous image if not loaded
@@ -170,9 +179,29 @@ public class JViewLoader extends Thread
 				for (String ext : exts) {
 					if (fname.endsWith(ext)) {
 						dstList.add(new ImageList(full_filelist[i]));
+						updateDirectory();
 						break;
 					}
 				}
+			}
+		}
+	}
+
+	class DirectorySearchThread extends Thread
+	{
+		@Override
+		public void run() {
+			load_dir_que = new LinkedList<File>();
+		
+			if (arg_path.isDirectory()) {
+				findAllImageFile(img_list, arg_path, load_dir_que);
+			} else if (arg_path.isFile()) {
+				img_list.add(new ImageList(arg_path));
+			}
+			updateCurrent();
+
+			while(findImageAsync() && running) {
+				//System.out.println("findImageAsync");
 			}
 		}
 	}
@@ -190,23 +219,16 @@ public class JViewLoader extends Thread
 	public void run() {
 		System.out.println("run with path="+arg_path);
 		img_list = new ArrayList<ImageList>();
-		load_dir_que = new LinkedList<File>();
 
-		if (arg_path.isDirectory()) {
-			findAllImageFile(img_list, arg_path, load_dir_que);
-		} else if (arg_path.isFile()) {
-			img_list.add(new ImageList(arg_path));
-		}
-		updateCurrent();
+		Thread search_thread = new DirectorySearchThread();
+		search_thread.start();
 
 		try {
 			this.running = true;
 			while(this.running) {
 				loadCurrent();
-				if (!findImageAsync()) {
-					synchronized(syncmon) {
-						syncmon.wait();
-					}
+				synchronized(syncmon) {
+					syncmon.wait();
 				}
 			}
 		} catch(InterruptedException ex) {
