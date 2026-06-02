@@ -139,7 +139,7 @@ public class JViewLoader extends Thread
 		
 			if (img_list.size()>1) {
 				loadImage(nextIndex(load_idx));
-				if (search_thread==null) {
+				if (search_thread==null || load_idx>0) {
 					/* supress load before searching dirs */
 					loadImage(prevIndex(load_idx));
 				}
