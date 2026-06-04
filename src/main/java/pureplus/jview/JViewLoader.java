@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Arrays;
-import java.awt.Image;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.lang.ref.SoftReference;
@@ -151,7 +150,7 @@ public class JViewLoader extends Thread
 		ImageList	ref = img_list.get(idx);
 		try {
 			//System.out.println("loadstart idx="+idx);
-			Image		img = ref.getImage();
+			BufferedImage		img = ref.getImage();
 
 			if (idx==this.index) {
 				//System.out.println("fire"+index+"/"+img_list.size());
@@ -256,7 +255,7 @@ public class JViewLoader extends Thread
 		jdisplistener.remove(l);
 	}
 
-	public void fireJViewLoadEvent(Image img, String name) {
+	public void fireJViewLoadEvent(BufferedImage img, String name) {
 		for (int i=0; i<jdisplistener.size(); i++) {
 			jdisplistener.get(i).imageLoaded(img, name);
 		}
