@@ -1,6 +1,6 @@
 package pureplus.jview;
 
-public interface JViewLoadEventListener
+public interface JViewLoadEventListener<I>
 {
-	public abstract void imageLoaded(java.awt.image.BufferedImage img, String name);
+	public abstract void imageLoaded(I img, String name);
 }

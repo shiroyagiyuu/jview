@@ -144,7 +144,7 @@ public class JView
 {
 	JFrame       frame;
 	JViewView    cont;
-	JViewLoader  ldr;
+	JViewLoader<BufferedImage>  ldr;
 
 	JFrame        imgListFrame;
 	JList<String> imgList;
@@ -223,7 +223,7 @@ public class JView
 			ldr = null;
 		}
 
-		ldr = new JViewLoader(path);
+		ldr = new JViewLoader<BufferedImage>(path, new JViewBufferedImageReader());
 		ldr.addJViewLoadListener((img, name) -> {
 			cont.setImage(img);
 			cont.repaint();

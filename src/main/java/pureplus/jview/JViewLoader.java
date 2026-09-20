@@ -5,33 +5,33 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Arrays;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
 import java.lang.ref.SoftReference;
 
-class ImageList
+class ImageList<I>
 {
-	File							file;
-	SoftReference<BufferedImage>	imgref;
+	File				file;
+	SoftReference<I>	imgref;
+	JViewImageReader<I>	rd;
 
-	ImageList(File file) {
+	ImageList(File file, JViewImageReader<I> rd) {
 		this.file = file;
+		this.rd = rd;
 	}
 
 	File getFile() {
 		return file;
 	}
 
-	BufferedImage getImage() throws IOException {
-		BufferedImage  resimg = null;
+	I getImage() throws IOException {
+		I  resimg = null;
 
 		if (imgref != null) {
 			resimg = imgref.get();
 		}
 
 		if (resimg == null) {
-			resimg = ImageIO.read(file);
-			imgref = new SoftReference<BufferedImage>(resimg);
+			resimg = rd.loadImage(file);
+			imgref = new SoftReference<I>(resimg);
 			System.out.println("loaded "+file.getName());
 		}
 
@@ -39,26 +39,30 @@ class ImageList
 	}
 }
 
-public class JViewLoader extends Thread
+public class JViewLoader<I> extends Thread
 {
 	int          index,load_idx;
 	File         	arg_path;
-	List<ImageList>	  img_list;
-	LinkedList<File>  load_dir_que;
+	List<ImageList<I>>	img_list;
+	LinkedList<File>	load_dir_que;
 
-	ArrayList<JViewLoadEventListener>  jdisplistener;
+	ArrayList<JViewLoadEventListener<I>>  jdisplistener;
 
 	Thread search_thread;
+	
+	JViewImageReader<I>	img_reader;
 
 	private Object  syncmon = new Object();
 	private boolean running;
 
-	public JViewLoader(String path) {
+	public JViewLoader(String path, JViewImageReader<I> rd) {
 		this.index = this.load_idx = -1;
 		this.arg_path = new File(path);
 		this.img_list = null;
 
-		jdisplistener = new ArrayList<JViewLoadEventListener>();
+		this.img_reader = rd;
+
+		jdisplistener = new ArrayList<JViewLoadEventListener<I>>();
 	}
 
 	public void setIndex(int idx) {
@@ -147,10 +151,10 @@ public class JViewLoader extends Thread
 	}
 
 	public void loadImage(int idx) {
-		ImageList	ref = img_list.get(idx);
+		ImageList<I>	ref = img_list.get(idx);
 		try {
 			//System.out.println("loadstart idx="+idx);
-			BufferedImage		img = ref.getImage();
+			I	img = ref.getImage();
 
 			if (idx==this.index) {
 				//System.out.println("fire"+index+"/"+img_list.size());
@@ -162,9 +166,9 @@ public class JViewLoader extends Thread
 		}
 	}
 
-	private void findAllImageFile(List<ImageList> dstList, File dir, List<File> queue) {
+	private void findAllImageFile(List<ImageList<I>> dstList, File dir, List<File> queue) {
 		File[]    full_filelist;
-		String[]  exts = ImageIO.getReaderFileSuffixes();
+		String[]  exts = javax.imageio.ImageIO.getReaderFileSuffixes();
 
 		System.out.println("search dir="+dir.getName());
 		full_filelist = dir.listFiles();
@@ -180,7 +184,8 @@ public class JViewLoader extends Thread
 
 				for (String ext : exts) {
 					if (fname.endsWith(ext)) {
-						dstList.add(new ImageList(full_filelist[i]));
+						System.out.println("img_reader= "+img_reader);
+						dstList.add(new ImageList<I>(full_filelist[i], img_reader));
 						updateDirectory();
 						break;
 					}
@@ -198,7 +203,8 @@ public class JViewLoader extends Thread
 			if (arg_path.isDirectory()) {
 				findAllImageFile(img_list, arg_path, load_dir_que);
 			} else if (arg_path.isFile()) {
-				img_list.add(new ImageList(arg_path));
+				System.out.println("d img_reader= "+img_reader);
+				img_list.add(new ImageList<I>(arg_path, img_reader));
 			}
 			updateCurrent();
 
@@ -222,7 +228,7 @@ public class JViewLoader extends Thread
 	@Override
 	public void run() {
 		System.out.println("run with path="+arg_path);
-		img_list = new ArrayList<ImageList>();
+		img_list = new ArrayList<ImageList<I>>();
 
 		search_thread = new DirectorySearchThread();
 		search_thread.start();
@@ -247,15 +253,15 @@ public class JViewLoader extends Thread
 		}
 	}
 
-	public void addJViewLoadListener(JViewLoadEventListener l) {
+	public void addJViewLoadListener(JViewLoadEventListener<I> l) {
 		jdisplistener.add(l);
 	}
 
-	public void removeJViewLoadListener(JViewLoadEventListener l) {
+	public void removeJViewLoadListener(JViewLoadEventListener<I> l) {
 		jdisplistener.remove(l);
 	}
 
-	public void fireJViewLoadEvent(BufferedImage img, String name) {
+	public void fireJViewLoadEvent(I img, String name) {
 		for (int i=0; i<jdisplistener.size(); i++) {
 			jdisplistener.get(i).imageLoaded(img, name);
 		}
